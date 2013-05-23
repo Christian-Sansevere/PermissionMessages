@@ -1,0 +1,7 @@
+#Times support seconds(s), minutes(m), and hours(h).
+PermissionMessages:
+  examplePermission:
+    timer: '30m'
+    messages:
+      - '&aHello $player, here is a reminder for the random event.'
+      - '&aThis will be sent to players with the permission: permissionmessages.examplePermission'
