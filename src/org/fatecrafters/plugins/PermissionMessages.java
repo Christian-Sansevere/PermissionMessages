@@ -38,92 +38,6 @@ public class PermissionMessages extends JavaPlugin {
 		getLogger().info("[PermissionMessages] PermissionMessages has been disabled.");
 	}
 
-	private Long getTickTime(String configloc) {
-		String configtime = getConfig().getString("PermissionMessages."+configloc);
-		if (configtime.contains("s")) {
-			configtime = configtime.replace("s", "");
-			return (Long.parseLong(configtime)*1000)/50;
-		} else if (configtime.contains("m")) {
-			configtime = configtime.replace("m", "");
-			return (Long.parseLong(configtime)*60000)/50;
-		} else if (configtime.contains("h")) {
-			configtime = configtime.replace("h", "");
-			return (Long.parseLong(configtime)*3600000)/50;
-		} else {
-			return Long.parseLong(configtime);
-		}
-	}
-	
-	private Long getMilliTime(String configloc) {
-		String configtime = getConfig().getString("PermissionMessages."+configloc);
-		if (configtime.contains("s")) {
-			configtime = configtime.replace("s", "");
-			return (Long.parseLong(configtime)*1000);
-		} else if (configtime.contains("m")) {
-			configtime = configtime.replace("m", "");
-			return (Long.parseLong(configtime)*60000);
-		} else if (configtime.contains("h")) {
-			configtime = configtime.replace("h", "");
-			return (Long.parseLong(configtime)*3600000);
-		} else {
-			return Long.parseLong(configtime);
-		}
-	}
-
-	private void addToHashmap() {
-		for (String perms : getConfig().getConfigurationSection("PermissionMessages").getKeys(false)) {
-			Long timer = getTickTime(perms+".timer");
-			Long milli = getMilliTime(perms+".timer");
-			timers.put(perms, timer);
-			loops.put(perms, System.currentTimeMillis()+milli);
-			millis.put(perms, milli);
-		}
-	}
-
-	private void reload() {
-		reloadConfig();
-		PermissionMessages.timers.clear();
-		addToHashmap();
-		for (Object key : PermissionMessages.timers.keySet()) {
-			Permission perm = new Permission("permissionmessages."+key.toString());
-			perm.setDefault(PermissionDefault.FALSE);
-			if (getServer().getPluginManager().getPermission("permissionmessages."+key.toString()) == null) {
-				getServer().getPluginManager().addPermission(perm);
-			}
-		}
-	}
-
-	private boolean addToExistingPerm(String perm, String message) {
-		for (String perms : getConfig().getConfigurationSection("PermissionMessages").getKeys(false)) {
-			if (perms.equalsIgnoreCase(perm)) {
-				List<String> list = getConfig().getStringList("PermissionMessages."+perms+".messages");
-				list.add(message);
-				getConfig().set("PermissionMessages."+perms+".messages", list);
-				saveConfig();
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	private boolean checkIfArgIsTimer(String arg) {
-		if (arg.contains("s")) {
-			return true;
-		} else if (arg.contains("m")) {
-			return true;
-		} else if (arg.contains("h")) {
-			return true;
-		}
-		return false;
-	}
-
-	private void addToConfig(String perm, String timer, String message) {
-		List<String> list = Arrays.asList(message);
-		getConfig().set("PermissionMessages."+perm+".timer", timer);
-		getConfig().set("PermissionMessages."+perm+".messages", list);
-		saveConfig();
-	}
-
 	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 		if(cmd.getName().equalsIgnoreCase("permissionmessages")) {
 			if (args.length >= 1) {
@@ -191,11 +105,96 @@ public class PermissionMessages extends JavaPlugin {
 					String message = stringbuild.toString();
 					addToConfig(perm, time, message);
 					sender.sendMessage(ChatColor.LIGHT_PURPLE+perm+ChatColor.GRAY+" was added to the config.");
-					sender.sendMessage(message);
 					reload();
 					return true;
 				}
 			}
+		}
+		return false;
+	}
+	
+	private Long getTickTime(String configloc) {
+		String configtime = getConfig().getString("PermissionMessages."+configloc);
+		if (configtime.contains("s")) {
+			configtime = configtime.replace("s", "");
+			return (Long.parseLong(configtime)*1000)/50;
+		} else if (configtime.contains("m")) {
+			configtime = configtime.replace("m", "");
+			return (Long.parseLong(configtime)*60000)/50;
+		} else if (configtime.contains("h")) {
+			configtime = configtime.replace("h", "");
+			return (Long.parseLong(configtime)*3600000)/50;
+		} else {
+			return Long.parseLong(configtime);
+		}
+	}
+	
+	private Long getMilliTime(String configloc) {
+		String configtime = getConfig().getString("PermissionMessages."+configloc);
+		if (configtime.contains("s")) {
+			configtime = configtime.replace("s", "");
+			return (Long.parseLong(configtime)*1000);
+		} else if (configtime.contains("m")) {
+			configtime = configtime.replace("m", "");
+			return (Long.parseLong(configtime)*60000);
+		} else if (configtime.contains("h")) {
+			configtime = configtime.replace("h", "");
+			return (Long.parseLong(configtime)*3600000);
+		} else {
+			return Long.parseLong(configtime);
+		}
+	}
+
+	private void addToHashmap() {
+		for (String perms : getConfig().getConfigurationSection("PermissionMessages").getKeys(false)) {
+			Long timer = getTickTime(perms+".timer");
+			Long milli = getMilliTime(perms+".timer");
+			timers.put(perms, timer);
+			loops.put(perms, System.currentTimeMillis()+milli);
+			millis.put(perms, milli);
+		}
+	}
+
+	private void reload() {
+		reloadConfig();
+		PermissionMessages.timers.clear();
+		addToHashmap();
+		for (Object key : PermissionMessages.timers.keySet()) {
+			Permission perm = new Permission("permissionmessages."+key.toString());
+			perm.setDefault(PermissionDefault.FALSE);
+			if (getServer().getPluginManager().getPermission("permissionmessages."+key.toString()) == null) {
+				getServer().getPluginManager().addPermission(perm);
+			}
+		}
+	}
+
+	private void addToConfig(String perm, String timer, String message) {
+		List<String> list = Arrays.asList(message);
+		getConfig().set("PermissionMessages."+perm+".timer", timer);
+		getConfig().set("PermissionMessages."+perm+".messages", list);
+		saveConfig();
+	}
+	
+	private boolean addToExistingPerm(String perm, String message) {
+		for (String perms : getConfig().getConfigurationSection("PermissionMessages").getKeys(false)) {
+			if (perms.equalsIgnoreCase(perm)) {
+				List<String> list = getConfig().getStringList("PermissionMessages."+perms+".messages");
+				list.add(message);
+				getConfig().set("PermissionMessages."+perms+".messages", list);
+				saveConfig();
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	private boolean checkIfArgIsTimer(String arg) {
+		if (arg.contains("s")) {
+			return true;
+		} else if (arg.contains("m")) {
+			return true;
+		} else if (arg.contains("h")) {
+			return true;
 		}
 		return false;
 	}
