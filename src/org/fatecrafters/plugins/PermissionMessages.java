@@ -28,7 +28,6 @@ public class PermissionMessages extends JavaPlugin {
 			getServer().getPluginManager().addPermission(perm);
 			getLogger().info("[PermissionMessages] Task loaded for "+key.toString());
 		}
-		getServer().getPluginManager().registerEvents(new PlayerListener(), this);
 		getLogger().info("[PermissionMessages] PermissionMessages has been enabled.");
 	}
 

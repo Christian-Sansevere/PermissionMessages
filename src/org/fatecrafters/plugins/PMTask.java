@@ -14,7 +14,7 @@ public class PMTask implements Runnable {
 				for (Player p : Bukkit.getOnlinePlayers()) {
 					String name = p.getName();
 					Boolean silenced = PermissionMessages.silences.get(name);
-					if (!silenced) {
+					if (silenced == null || !silenced) {
 						if (p.hasPermission("permissionmessages."+perm)) {
 							for (String message : PMUtil.getConfig().getStringList("PermissionMessages."+perm+".messages")) {
 								p.sendMessage(ChatColor.translateAlternateColorCodes('&', message.replace("$player", name)));
