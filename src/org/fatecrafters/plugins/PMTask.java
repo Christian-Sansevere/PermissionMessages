@@ -6,25 +6,27 @@ import org.bukkit.entity.Player;
 
 public class PMTask implements Runnable {
 
-	private final PermissionMessages plugin;
-
-	public PMTask(PermissionMessages plugin) {
-		this.plugin = plugin;
-	}
-
-
 	@Override
 	public void run() {
-		for (String perms : plugin.getConfig().getConfigurationSection("PermissionMessages").getKeys(false)) {
+		for (Object perms : PermissionMessages.loops.keySet()) {
 			if (PermissionMessages.loops.get(perms) < System.currentTimeMillis()) {
+				String perm = perms.toString();
 				for (Player p : Bukkit.getOnlinePlayers()) {
-					if (p.hasPermission("permissionmessages."+perms)) {
-						for (String message : plugin.getConfig().getStringList("PermissionMessages."+perms+".messages")) {
-							p.sendMessage(ChatColor.translateAlternateColorCodes('&', message.replace("$player", p.getName())));
+					String name = p.getName();
+					Boolean silenced = PermissionMessages.silences.get(name);
+					if (!silenced) {
+						if (p.hasPermission("permissionmessages."+perm)) {
+							for (String message : PMUtil.getConfig().getStringList("PermissionMessages."+perm+".messages")) {
+								p.sendMessage(ChatColor.translateAlternateColorCodes('&', message.replace("$player", name)));
+							}
 						}
 					}
 				}
-				PermissionMessages.loops.put(perms, System.currentTimeMillis() + PermissionMessages.millis.get(perms));
+				if (!PMUtil.getConfig().getString("PermissionMessages."+perm+".timer").contains("-")) {
+					PermissionMessages.loops.put(perm, System.currentTimeMillis() + PermissionMessages.millis.get(perms));
+				} else {
+					PermissionMessages.loops.put(perm, System.currentTimeMillis() + PMUtil.getRandomTime(perm));
+				}
 			}
 		}
 	}

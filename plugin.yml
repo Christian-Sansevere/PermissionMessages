@@ -1,13 +1,23 @@
 name: PermissionMessages
 main: org.fatecrafters.plugins.PermissionMessages
-version: 1.0
+version: 1.2
 author: Slayr288
 website: http://Fatecrafters.org
 description: Send timed messages based on permissions.
 commands:
   permissionmessages:
     description: Main commands.
-    aliases: [pm, permmsg, permissionmsgs]
+    aliases: [pm, permmsg, permmsgs, permissionmsgs]
 permissions:
   permissionmessages.reload:
     default: op
+  permissionmessages.create:
+    default: op
+  permissionmessages.add:
+    default: op
+  permissionmessages.remove:
+    default: op
+  permissionmessages.list:
+    default: op
+  permissionmessages.silence:
+    default: false

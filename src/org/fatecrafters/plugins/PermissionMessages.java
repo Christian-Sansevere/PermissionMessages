@@ -1,33 +1,34 @@
 package org.fatecrafters.plugins;
 
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionDefault;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class PermissionMessages extends JavaPlugin {
 
-	public static HashMap<String, Long> timers = new HashMap<String, Long>();
 	public static HashMap<String, Long> millis = new HashMap<String, Long>();
 	public static HashMap<String, Long> loops = new HashMap<String, Long>();
+	public static HashMap<String, Boolean> silences = new HashMap<String, Boolean>();
 
 	@Override
 	public void onEnable() { 
 		saveDefaultConfig();
-		addToHashmap();
-		getServer().getScheduler().scheduleSyncRepeatingTask(this, new PMTask(this), 0L, 50L);
-		for (Object key : PermissionMessages.timers.keySet()) {
+		PMUtil.setPlugin(this);
+		PMUtil.addToHashmap();
+		getServer().getScheduler().scheduleSyncRepeatingTask(this, new PMTask(), 0L, 50L);
+		for (Object key : loops.keySet()) {
 			Permission perm = new Permission("permissionmessages."+key.toString());
 			perm.setDefault(PermissionDefault.FALSE);
 			getServer().getPluginManager().addPermission(perm);
-			getLogger().info("[PermissionMessages] Task loaded for "+key.toString()+". Timer: "+PermissionMessages.timers.get(key)+" ticks");
+			getLogger().info("[PermissionMessages] Task loaded for "+key.toString());
 		}
+		getServer().getPluginManager().registerEvents(new PlayerListener(), this);
 		getLogger().info("[PermissionMessages] PermissionMessages has been enabled.");
 	}
 
@@ -47,7 +48,7 @@ public class PermissionMessages extends JavaPlugin {
 						return false;
 					}
 					Long first = System.currentTimeMillis();
-					reload();
+					PMUtil.reload();
 					sender.sendMessage(ChatColor.GRAY + "Config and Timers reloaded.");
 					sender.sendMessage(ChatColor.GRAY + "Took " + ChatColor.YELLOW + (System.currentTimeMillis() - first) + "ms" + ChatColor.GRAY + ".");
 					return true;
@@ -63,9 +64,9 @@ public class PermissionMessages extends JavaPlugin {
 						stringbuild.append(args[i]);
 					}
 					String message = stringbuild.toString();
-					if (addToExistingPerm(perm, message)) {
+					if (PMUtil.addToExistingPerm(perm, message)) {
 						sender.sendMessage(ChatColor.GRAY+"Message has been added to "+ChatColor.LIGHT_PURPLE+perm);
-						reload();
+						PMUtil.reload();
 						return true;
 					} else {
 						sender.sendMessage(ChatColor.GRAY + "The permission does not exist, please use the create method.");
@@ -80,7 +81,7 @@ public class PermissionMessages extends JavaPlugin {
 						String perm = args[1];
 						getConfig().set("PermissionMessages."+perm, null);
 						saveConfig();
-						reload();
+						PMUtil.reload();
 						sender.sendMessage(ChatColor.LIGHT_PURPLE+perm+ChatColor.GRAY+" was removed from the config.");
 						return true;
 					} else {
@@ -91,7 +92,7 @@ public class PermissionMessages extends JavaPlugin {
 					if (!sender.hasPermission("permissionmessages.create")) {
 						sender.sendMessage(ChatColor.GRAY + "You do not have permission.");
 						return false;
-					} else if (!checkIfArgIsTimer(args[2])) {
+					} else if (!PMUtil.checkIfArgIsTimer(args[2])) {
 						sender.sendMessage(ChatColor.GRAY + "You did not correctly enter a time. Please use a number with <s/m/h>");
 						return false;
 					}
@@ -103,98 +104,45 @@ public class PermissionMessages extends JavaPlugin {
 						stringbuild.append(args[i]);
 					}
 					String message = stringbuild.toString();
-					addToConfig(perm, time, message);
+					PMUtil.addToConfig(perm, time, message);
 					sender.sendMessage(ChatColor.LIGHT_PURPLE+perm+ChatColor.GRAY+" was added to the config.");
-					reload();
+					PMUtil.reload();
+					return true;
+				} else if (args[0].equalsIgnoreCase("silence")) {
+					if (!sender.hasPermission("permissionmessages.silence")) {
+						sender.sendMessage(ChatColor.GRAY + "You do not have permission.");
+						return false;
+					} else if (!(sender instanceof Player)) {
+						sender.sendMessage("This command can only be run by a player.");
+						return false;
+					}
+					Player p = (Player) sender;
+					String name = p.getName();
+					Boolean silenced = silences.get(name);
+					if (silenced == null || !silenced) {
+						silences.put(name, true);
+						p.sendMessage(ChatColor.GRAY+"You are now silenced from timed messages.");
+						return true;
+					} else {
+						silences.put(name, false);
+						p.sendMessage(ChatColor.GRAY+"You are no longer silenced.");
+						return true;
+					}
+				} else if (args[0].equalsIgnoreCase("list")) {
+					if (!sender.hasPermission("permissionmessages.list")) {
+						sender.sendMessage(ChatColor.GRAY + "You do not have permission.");
+						return false;
+					}
+					int i = 0;
+					sender.sendMessage(ChatColor.GRAY+"~ "+ChatColor.LIGHT_PURPLE+"Permission Messages Loaded");
+					sender.sendMessage(ChatColor.GRAY+"----------------------------------");
+					for (Object perms : loops.keySet()) {
+						i++;
+						sender.sendMessage(ChatColor.DARK_GREEN+""+i+". "+ChatColor.GREEN+perms.toString());
+					}
 					return true;
 				}
 			}
-		}
-		return false;
-	}
-	
-	private Long getTickTime(String configloc) {
-		String configtime = getConfig().getString("PermissionMessages."+configloc);
-		if (configtime.contains("s")) {
-			configtime = configtime.replace("s", "");
-			return (Long.parseLong(configtime)*1000)/50;
-		} else if (configtime.contains("m")) {
-			configtime = configtime.replace("m", "");
-			return (Long.parseLong(configtime)*60000)/50;
-		} else if (configtime.contains("h")) {
-			configtime = configtime.replace("h", "");
-			return (Long.parseLong(configtime)*3600000)/50;
-		} else {
-			return Long.parseLong(configtime);
-		}
-	}
-	
-	private Long getMilliTime(String configloc) {
-		String configtime = getConfig().getString("PermissionMessages."+configloc);
-		if (configtime.contains("s")) {
-			configtime = configtime.replace("s", "");
-			return (Long.parseLong(configtime)*1000);
-		} else if (configtime.contains("m")) {
-			configtime = configtime.replace("m", "");
-			return (Long.parseLong(configtime)*60000);
-		} else if (configtime.contains("h")) {
-			configtime = configtime.replace("h", "");
-			return (Long.parseLong(configtime)*3600000);
-		} else {
-			return Long.parseLong(configtime);
-		}
-	}
-
-	private void addToHashmap() {
-		for (String perms : getConfig().getConfigurationSection("PermissionMessages").getKeys(false)) {
-			Long timer = getTickTime(perms+".timer");
-			Long milli = getMilliTime(perms+".timer");
-			timers.put(perms, timer);
-			loops.put(perms, System.currentTimeMillis()+milli);
-			millis.put(perms, milli);
-		}
-	}
-
-	private void reload() {
-		reloadConfig();
-		PermissionMessages.timers.clear();
-		addToHashmap();
-		for (Object key : PermissionMessages.timers.keySet()) {
-			Permission perm = new Permission("permissionmessages."+key.toString());
-			perm.setDefault(PermissionDefault.FALSE);
-			if (getServer().getPluginManager().getPermission("permissionmessages."+key.toString()) == null) {
-				getServer().getPluginManager().addPermission(perm);
-			}
-		}
-	}
-
-	private void addToConfig(String perm, String timer, String message) {
-		List<String> list = Arrays.asList(message);
-		getConfig().set("PermissionMessages."+perm+".timer", timer);
-		getConfig().set("PermissionMessages."+perm+".messages", list);
-		saveConfig();
-	}
-	
-	private boolean addToExistingPerm(String perm, String message) {
-		for (String perms : getConfig().getConfigurationSection("PermissionMessages").getKeys(false)) {
-			if (perms.equalsIgnoreCase(perm)) {
-				List<String> list = getConfig().getStringList("PermissionMessages."+perms+".messages");
-				list.add(message);
-				getConfig().set("PermissionMessages."+perms+".messages", list);
-				saveConfig();
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	private boolean checkIfArgIsTimer(String arg) {
-		if (arg.contains("s")) {
-			return true;
-		} else if (arg.contains("m")) {
-			return true;
-		} else if (arg.contains("h")) {
-			return true;
 		}
 		return false;
 	}
