@@ -36,9 +36,9 @@ public class PMUtil {
 		} else if (configtime.contains("h")) {
 			configtime = configtime.replace("h", "");
 			return (Long.parseLong(configtime)*3600000);
-		} else {
-			return Long.parseLong(configtime);
 		}
+		plugin.getServer().getLogger().severe("[PermissionMessages] Error in random timer configuration for "+configloc+"!");
+		return 0L;	
 	}
 
 	public static int getRandomTime(String perm) {
@@ -96,7 +96,7 @@ public class PMUtil {
 				return r.nextInt(high - low + 1) + low;
 			}
 		}
-		plugin.getServer().getLogger().severe("[PermissionMessages] Error in random timer configuration!");
+		plugin.getServer().getLogger().severe("[PermissionMessages] Error in random timer configuration for "+perm+"!");
 		return 0;	
 	}
 
