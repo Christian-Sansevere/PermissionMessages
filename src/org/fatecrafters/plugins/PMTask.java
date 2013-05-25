@@ -6,26 +6,52 @@ import org.bukkit.entity.Player;
 
 public class PMTask implements Runnable {
 
+	private final PermissionMessages plugin;
+
+	public PMTask(PermissionMessages plugin) {
+		this.plugin = plugin;
+	}
+
+	private Boolean cycle;
+	private String name;
+	private String perm;
+	private String rmessage;
+
 	@Override
 	public void run() {
-		for (Object perms : PermissionMessages.loops.keySet()) {
-			if (PermissionMessages.loops.get(perms) < System.currentTimeMillis()) {
-				String perm = perms.toString();
-				for (Player p : Bukkit.getOnlinePlayers()) {
-					String name = p.getName();
-					Boolean silenced = PermissionMessages.silences.get(name);
-					if (silenced == null || !silenced) {
-						if (p.hasPermission("permissionmessages."+perm)) {
-							for (String message : PMUtil.getConfig().getStringList("PermissionMessages."+perm+".messages")) {
-								p.sendMessage(ChatColor.translateAlternateColorCodes('&', message.replace("$player", name)));
+		for (Object perms : PMUtil.loops.keySet()) {
+			if (PMUtil.loops.get(perms) < System.currentTimeMillis()) {
+				perm = perms.toString();
+				if (PMUtil.methods.get(perm).equalsIgnoreCase("cycle") || PMUtil.methods.get(perm).equalsIgnoreCase("null")) {
+					cycle = true;
+				} else {
+					cycle = false;
+					rmessage = PMUtil.getRandomMessage(perm);
+				}
+				plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+					public void run() {
+						for (Player p : Bukkit.getOnlinePlayers()) {
+							name = p.getName();
+							if (PMUtil.silences.get(name) == null || !PMUtil.silences.get(name)) {
+								if (p.hasPermission("permissionmessages."+perm)) {
+									if (!PMUtil.disabledWorlds.get(perm).contains(p.getWorld().getName())) {
+										if (cycle) {
+											for (String message : PMUtil.getConfig().getStringList("PermissionMessages."+perm+".messages")) {
+												p.sendMessage(ChatColor.translateAlternateColorCodes('&', message.replace("$player", name)));
+											}
+										} else {
+											p.sendMessage(ChatColor.translateAlternateColorCodes('&', rmessage.replace("$player", name)));
+										}
+									}
+								}
 							}
 						}
 					}
-				}
+				});
 				if (!PMUtil.getConfig().getString("PermissionMessages."+perm+".timer").contains("-")) {
-					PermissionMessages.loops.put(perm, System.currentTimeMillis() + PermissionMessages.millis.get(perms));
+					PMUtil.loops.put(perm, System.currentTimeMillis() + PMUtil.millis.get(perms));
 				} else {
-					PermissionMessages.loops.put(perm, System.currentTimeMillis() + PMUtil.getRandomTime(perm));
+					PMUtil.loops.put(perm, System.currentTimeMillis() + PMUtil.getRandomTime(perm));
 				}
 			}
 		}

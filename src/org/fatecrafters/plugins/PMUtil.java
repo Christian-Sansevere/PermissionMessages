@@ -1,6 +1,7 @@
 package org.fatecrafters.plugins;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 
@@ -9,6 +10,12 @@ import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionDefault;
 
 public class PMUtil {
+
+	public static HashMap<String, Long> millis = new HashMap<String, Long>();
+	public static HashMap<String, Long> loops = new HashMap<String, Long>();
+	public static HashMap<String, String> methods = new HashMap<String, String>();
+	public static HashMap<String, Boolean> silences = new HashMap<String, Boolean>();
+	public static HashMap<String, String> disabledWorlds = new HashMap<String, String>();
 
 	private static PermissionMessages plugin;
 	public static void setPlugin(PermissionMessages plugin) {
@@ -93,15 +100,43 @@ public class PMUtil {
 		return 0;	
 	}
 
+	public static String getRandomMessage(String perm) {
+		List<String> list = getConfig().getStringList("PermissionMessages."+perm+".messages");
+		Random r;
+		r = new Random();
+		int arg = r.nextInt(list.size());
+		return list.get(arg);
+	}
+
 	public static void addToHashmap() {
+		loops.clear();
+		methods.clear();
+		millis.clear();
+		disabledWorlds.clear();
 		for (String perms : getConfig().getConfigurationSection("PermissionMessages").getKeys(false)) {
 			if (!getConfig().getString("PermissionMessages."+perms+".timer").contains("-")) {
 				Long milli = getMilliTime(perms+".timer");
-				PermissionMessages.loops.put(perms, System.currentTimeMillis()+milli);
-				PermissionMessages.millis.put(perms, milli);
+				loops.put(perms, System.currentTimeMillis()+milli);
+				millis.put(perms, milli);
 			} else {
 				Long milli = (long) getRandomTime(perms);
-				PermissionMessages.loops.put(perms, System.currentTimeMillis()+milli);
+				loops.put(perms, System.currentTimeMillis()+milli);
+			}
+			List<String> configDisabledWorlds = getConfig().getStringList("PermissionMessages."+perms+".disabledWorlds");
+			StringBuilder result = new StringBuilder();
+			for (int i = 0; i < configDisabledWorlds.size(); i++) {
+				result.append(configDisabledWorlds.get(i));
+			}
+			String disabledworlds = result.toString();
+			if (configDisabledWorlds != null && !configDisabledWorlds.isEmpty()) {
+				disabledWorlds.put(perms, disabledworlds);
+			} else {
+				disabledWorlds.put(perms, "null");
+			}
+			if (getConfig().getString("PermissionMessages."+perms+".method") != null) {
+				methods.put(perms, getConfig().getString("PermissionMessages."+perms+".method"));
+			} else {
+				methods.put(perms, "null");
 			}
 		}
 	}
@@ -109,7 +144,7 @@ public class PMUtil {
 	public static void reload() {
 		plugin.reloadConfig();
 		addToHashmap();
-		for (Object key : PermissionMessages.loops.keySet()) {
+		for (Object key : loops.keySet()) {
 			Permission perm = new Permission("permissionmessages."+key.toString());
 			perm.setDefault(PermissionDefault.FALSE);
 			if (plugin.getServer().getPluginManager().getPermission("permissionmessages."+key.toString()) == null) {
@@ -118,9 +153,10 @@ public class PMUtil {
 		}
 	}
 
-	public static void addToConfig(String perm, String timer, String message) {
+	public static void addToConfig(String perm, String method, String timer, String message) {
 		List<String> list = Arrays.asList(message);
 		getConfig().set("PermissionMessages."+perm+".timer", timer);
+		getConfig().set("PermissionMessages."+perm+".method", method);
 		getConfig().set("PermissionMessages."+perm+".messages", list);
 		plugin.saveConfig();
 	}

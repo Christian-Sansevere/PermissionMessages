@@ -1,7 +1,5 @@
 package org.fatecrafters.plugins;
 
-import java.util.HashMap;
-
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -12,17 +10,14 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class PermissionMessages extends JavaPlugin {
 
-	public static HashMap<String, Long> millis = new HashMap<String, Long>();
-	public static HashMap<String, Long> loops = new HashMap<String, Long>();
-	public static HashMap<String, Boolean> silences = new HashMap<String, Boolean>();
-
+	@SuppressWarnings("deprecation")
 	@Override
 	public void onEnable() { 
 		saveDefaultConfig();
 		PMUtil.setPlugin(this);
 		PMUtil.addToHashmap();
-		getServer().getScheduler().scheduleSyncRepeatingTask(this, new PMTask(), 0L, 50L);
-		for (Object key : loops.keySet()) {
+		getServer().getScheduler().scheduleAsyncRepeatingTask(this, new PMTask(this), 15L, 50L);
+		for (Object key : PMUtil.loops.keySet()) {
 			Permission perm = new Permission("permissionmessages."+key.toString());
 			perm.setDefault(PermissionDefault.FALSE);
 			getServer().getPluginManager().addPermission(perm);
@@ -54,6 +49,9 @@ public class PermissionMessages extends JavaPlugin {
 				} else if (args[0].equalsIgnoreCase("add")) {
 					if (!sender.hasPermission("permissionmessages.add")) {
 						sender.sendMessage(ChatColor.GRAY + "You do not have permission.");
+						return false;
+					} else if (args.length <= 3) {
+						sender.sendMessage(ChatColor.GRAY + "Correct usage:"+ChatColor.LIGHT_PURPLE+"/pm add <permission> <message>");
 						return false;
 					}
 					String perm = args[1];
@@ -91,23 +89,32 @@ public class PermissionMessages extends JavaPlugin {
 					if (!sender.hasPermission("permissionmessages.create")) {
 						sender.sendMessage(ChatColor.GRAY + "You do not have permission.");
 						return false;
+					} else if (args.length <= 4) {
+						sender.sendMessage(ChatColor.GRAY+"Correct usage:"+ChatColor.LIGHT_PURPLE+"/pm create <permission> <time> <method> <message>");
+						return false;
 					} else if (!PMUtil.checkIfArgIsTimer(args[2])) {
 						sender.sendMessage(ChatColor.GRAY + "You did not correctly enter a time. Please use a number with <s/m/h>");
 						return false;
 					}
 					String perm = args[1];
+					String method = args[3];
 					String time = args[2];
-					StringBuilder stringbuild = new StringBuilder();
-					for(int i = 3; i < args.length; i++) {
-						if (i > 3) stringbuild.append(" ");
-						stringbuild.append(args[i]);
+					if (method.equalsIgnoreCase("cycle") || method.equalsIgnoreCase("random")) {
+						StringBuilder stringbuild = new StringBuilder();
+						for(int i = 4; i < args.length; i++) {
+							if (i > 4) stringbuild.append(" ");
+							stringbuild.append(args[i]);
+						}
+						String message = stringbuild.toString();
+						PMUtil.addToConfig(perm, method, time, message);
+						PMUtil.reload();
+						sender.sendMessage(ChatColor.LIGHT_PURPLE+perm+ChatColor.GRAY+" was added to the config.");
+						return true;
+					} else {
+						sender.sendMessage(ChatColor.GRAY + "Please only use "+ChatColor.LIGHT_PURPLE+"cycle"+ChatColor.GRAY+" or "+ChatColor.LIGHT_PURPLE+"random "+ChatColor.GRAY+"for the method.");
+						return false;
 					}
-					String message = stringbuild.toString();
-					PMUtil.addToConfig(perm, time, message);
-					sender.sendMessage(ChatColor.LIGHT_PURPLE+perm+ChatColor.GRAY+" was added to the config.");
-					PMUtil.reload();
-					return true;
-				} else if (args[0].equalsIgnoreCase("silence")) {
+				} else if (args[0].equalsIgnoreCase("silence") || args[0].equalsIgnoreCase("stfu")) {
 					if (!sender.hasPermission("permissionmessages.silence")) {
 						sender.sendMessage(ChatColor.GRAY + "You do not have permission.");
 						return false;
@@ -117,13 +124,13 @@ public class PermissionMessages extends JavaPlugin {
 					}
 					Player p = (Player) sender;
 					String name = p.getName();
-					Boolean silenced = silences.get(name);
+					Boolean silenced = PMUtil.silences.get(name);
 					if (silenced == null || !silenced) {
-						silences.put(name, true);
+						PMUtil.silences.put(name, true);
 						p.sendMessage(ChatColor.GRAY+"You are now silenced from timed messages.");
 						return true;
 					} else {
-						silences.put(name, false);
+						PMUtil.silences.put(name, false);
 						p.sendMessage(ChatColor.GRAY+"You are no longer silenced.");
 						return true;
 					}
@@ -135,11 +142,24 @@ public class PermissionMessages extends JavaPlugin {
 					int i = 0;
 					sender.sendMessage(ChatColor.GRAY+"~ "+ChatColor.LIGHT_PURPLE+"Permission Messages Loaded");
 					sender.sendMessage(ChatColor.GRAY+"----------------------------------");
-					for (Object perms : loops.keySet()) {
+					for (Object perms : PMUtil.loops.keySet()) {
 						i++;
 						sender.sendMessage(ChatColor.DARK_GREEN+""+i+". "+ChatColor.GREEN+perms.toString());
 					}
 					return true;
+				} else if (args[0].equalsIgnoreCase("help") || args[0].equalsIgnoreCase("?")) {
+					if (!sender.hasPermission("permissionmessages.help")) {
+						sender.sendMessage(ChatColor.GRAY + "You do not have permission.");
+						return false;
+					}
+					sender.sendMessage(ChatColor.GRAY+"~ "+ChatColor.LIGHT_PURPLE+"Commands");
+					sender.sendMessage(ChatColor.GRAY+"------------------------");
+					sender.sendMessage(ChatColor.LIGHT_PURPLE+"/pm reload "+ChatColor.GRAY+"- Reload the timers and configuration.");
+					sender.sendMessage(ChatColor.LIGHT_PURPLE+"/pm create <permission> <time> <method> <message>"+ChatColor.GRAY+"- Create a new Permission Message.");
+					sender.sendMessage(ChatColor.LIGHT_PURPLE+"/pm add <permission> <message>"+ChatColor.GRAY+"- Add a message to an existing Permission Message.");
+					sender.sendMessage(ChatColor.LIGHT_PURPLE+"/pm list "+ChatColor.GRAY+"- List all of the loaded Permission Messages.");
+					sender.sendMessage(ChatColor.LIGHT_PURPLE+"/pm remove <permission> "+ChatColor.GRAY+"- Remove a Permission Message.");
+					sender.sendMessage(ChatColor.LIGHT_PURPLE+"/pm silence "+ChatColor.GRAY+"- Silence all messages from this plugin.");
 				}
 			}
 		}

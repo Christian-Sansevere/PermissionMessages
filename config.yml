@@ -1,7 +1,10 @@
-#Times support seconds(s), minutes(m), and hours(h).
+#Times support seconds(s), minutes(m), and hours(h). Methods are cycle and random
 PermissionMessages:
   examplePermission:
     timer: '30m'
+    method: cycle
+    disabledWorlds:
+      - world_the_end
     messages:
       - '&aHello $player, here is a reminder for the random event.'
       - '&aThis will be sent to players with the permission: permissionmessages.examplePermission'
