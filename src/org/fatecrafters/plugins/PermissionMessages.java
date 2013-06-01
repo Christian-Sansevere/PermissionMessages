@@ -17,11 +17,11 @@ public class PermissionMessages extends JavaPlugin {
 		PMUtil.setPlugin(this);
 		PMUtil.addToHashmap();
 		getServer().getScheduler().scheduleAsyncRepeatingTask(this, new PMTask(this), 0L, 40L);
-		for (Object key : PMUtil.loops.keySet()) {
-			Permission perm = new Permission("permissionmessages."+key.toString());
+		for (String perms : PMUtil.configPerms) {
+			Permission perm = new Permission("permissionmessages."+perms);
 			perm.setDefault(PermissionDefault.FALSE);
 			getServer().getPluginManager().addPermission(perm);
-			getLogger().info("[PermissionMessages] Task loaded for "+key.toString());
+			getLogger().info("[PermissionMessages] Task loaded for "+perms);
 		}
 		getLogger().info("[PermissionMessages] PermissionMessages has been enabled.");
 	}

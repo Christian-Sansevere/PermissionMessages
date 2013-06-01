@@ -1,5 +1,6 @@
 package org.fatecrafters.plugins;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -16,6 +17,7 @@ public class PMUtil {
 	public static HashMap<String, String> methods = new HashMap<String, String>();
 	public static HashMap<String, Boolean> silences = new HashMap<String, Boolean>();
 	public static HashMap<String, String> disabledWorlds = new HashMap<String, String>();
+	public static List<String> configPerms = new ArrayList<String>();
 
 	private static PermissionMessages plugin;
 	public static void setPlugin(PermissionMessages plugin) {
@@ -37,7 +39,7 @@ public class PMUtil {
 			configtime = configtime.replace("h", "");
 			return (Long.parseLong(configtime)*3600000);
 		}
-		plugin.getServer().getLogger().severe("[PermissionMessages] Error in random timer configuration for "+configloc+"!");
+		plugin.getServer().getLogger().severe("[PermissionMessages] Error in timer configuration for "+configloc+"!");
 		return 0L;	
 	}
 
@@ -113,6 +115,7 @@ public class PMUtil {
 		methods.clear();
 		millis.clear();
 		disabledWorlds.clear();
+		configPerms.clear();
 		for (String perms : getConfig().getConfigurationSection("PermissionMessages").getKeys(false)) {
 			if (!getConfig().getString("PermissionMessages."+perms+".timer").contains("-")) {
 				Long milli = getMilliTime(perms+".timer");
@@ -138,19 +141,23 @@ public class PMUtil {
 			} else {
 				methods.put(perms, "null");
 			}
+			configPerms.add(perms);
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	public static void reload() {
+		plugin.getServer().getScheduler().cancelAllTasks();
 		plugin.reloadConfig();
 		addToHashmap();
-		for (Object key : loops.keySet()) {
-			Permission perm = new Permission("permissionmessages."+key.toString());
-			perm.setDefault(PermissionDefault.FALSE);
-			if (plugin.getServer().getPluginManager().getPermission("permissionmessages."+key.toString()) == null) {
-				plugin.getServer().getPluginManager().addPermission(perm);
+		for (String perm : configPerms) {
+			Permission permi = new Permission("permissionmessages."+perm);
+			permi.setDefault(PermissionDefault.FALSE);
+			if (plugin.getServer().getPluginManager().getPermission("permissionmessages."+perm) == null) {
+				plugin.getServer().getPluginManager().addPermission(permi);
 			}
 		}
+		plugin.getServer().getScheduler().scheduleAsyncRepeatingTask(plugin, new PMTask(plugin), 0L, 40L);
 	}
 
 	public static void addToConfig(String perm, String method, String timer, String message) {
@@ -162,7 +169,7 @@ public class PMUtil {
 	}
 
 	public static boolean addToExistingPerm(String perm, String message) {
-		for (String perms : getConfig().getConfigurationSection("PermissionMessages").getKeys(false)) {
+		for (String perms : configPerms) {
 			if (perms.equalsIgnoreCase(perm)) {
 				List<String> list = getConfig().getStringList("PermissionMessages."+perms+".messages");
 				list.add(message);

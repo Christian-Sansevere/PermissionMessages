@@ -1,4 +1,4 @@
-#Times support seconds(s), minutes(m), and hours(h). Methods are cycle and random
+#Times support seconds(s), minutes(m), and hours(h). Methods are 'cycle' and 'random'.
 PermissionMessages:
   examplePermission:
     timer: '30m'

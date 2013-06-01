@@ -1,6 +1,6 @@
 name: PermissionMessages
 main: org.fatecrafters.plugins.PermissionMessages
-version: 2.0
+version: 2.2
 author: Slayr288
 website: http://Fatecrafters.org
 description: Send timed messages based on permissions.
